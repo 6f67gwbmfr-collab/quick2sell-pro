@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quick2Sell Lite</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f6f3ee;margin:0;padding:22px;color:#151515}
+.app{max-width:520px;margin:auto}
+h1{font-size:38px;margin:20px 0 0}
+.pro{background:#2f7d4f;color:white;border-radius:18px;padding:5px 12px;font-size:16px}
+.sub{color:#666;font-size:21px;margin:6px 0 28px}
+.card{background:white;border-radius:24px;padding:22px;margin:18px 0;box-shadow:0 8px 28px #00000012}
+input,textarea,select{width:100%;font-size:17px;padding:15px;border:1px solid #ddd;border-radius:15px;box-sizing:border-box}
+textarea{min-height:90px}
+button{width:100%;border:0;border-radius:16px;background:#ff6a00;color:white;font-size:20px;font-weight:800;padding:17px;margin-top:16px}
+.preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.preview img{width:100px;height:100px;object-fit:cover;border-radius:14px}
+.result{white-space:pre-wrap;line-height:1.45;font-size:16px}
+.badge{display:inline-block;background:#eef7ef;color:#2f7d4f;border-radius:999px;padding:6px 12px;font-weight:700}
+.small{color:#777;font-size:13px;text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🏷️ Quick2Sell <span class="pro">Lite</span></h1>
+  <div class="sub">Foto. Advies. Advertentie.</div>
 
+  <div class="card">
+    <h2>1. Upload productfoto’s</h2>
+    <input id="photos" type="file" accept="image/*" multiple />
+    <div id="preview" class="preview"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Extra info</h2>
+    <textarea id="info" placeholder="Bijv. merk, model, staat, leeftijd, schade, accessoires..."></textarea>
+    <label style="display:block;margin-top:14px;font-weight:700">Verkoopdoel</label>
+    <select id="goal">
+      <option value="slim">⚖️ Slim verkopen</option>
+      <option value="snel">⚡ Snel verkopen</option>
+      <option value="max">💰 Maximale opbrengst</option>
+    </select>
+    <button onclick="analyseer()">Analyseer product</button>
+  </div>
+
+  <div class="card">
+    <h2>3. Quick2Sell voorstel</h2>
+    <div id="result" class="result">Upload foto’s en klik op analyseren.</div>
+  </div>
+
+  <div class="small">Quick2Sell Lite geeft een verkoopvoorstel. Jij beslist altijd zelf.</div>
+</div>
+
+<script>
+const photos = document.getElementById("photos");
+const preview = document.getElementById("preview");
+
+photos.addEventListener("change", () => {
+  preview.innerHTML = "";
+  [...photos.files].slice(0,8).forEach(file => {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    preview.appendChild(img);
+  });
+});
+
+function euro(n){return "€" + Math.round(n);}
+
+function detectCategory(text){
+  text = text.toLowerCase();
+  if(text.includes("auto")||text.includes("golf")||text.includes("volkswagen")||text.includes("bmw")||text.includes("audi")) return "auto";
+  if(text.includes("iphone")||text.includes("samsung")||text.includes("laptop")||text.includes("playstation")) return "elektronica";
+  if(text.includes("kinderwagen")||text.includes("bugaboo")||text.includes("maxi")||text.includes("baby")) return "babyspullen";
+  if(text.includes("stoel")||text.includes("bank")||text.includes("tafel")||text.includes("kast")) return "meubels";
+  if(text.includes("fiets")||text.includes("ebike")||text.includes("e-bike")) return "fiets";
+  return "algemeen product";
+}
+
+function priceBase(cat){
+  return {
+    auto: 5500,
+    elektronica: 350,
+    babyspullen: 180,
+    meubels: 120,
+    fiets: 300,
+    "algemeen product": 75
+  }[cat];
+}
+
+function analyseer(){
+  const files = photos.files.length;
+  const info = document.getElementById("info").value.trim();
+  const goal = document.getElementById("goal").value;
+  const result = document.getElementById("result");
+
+  if(!files){
+    result.textContent = "Upload minimaal één foto.";
+    return;
+  }
+
+  const cat = detectCategory(info);
+  const base = priceBase(cat);
+
+  let snel = base * 0.85;
+  let slim = base;
+  let max = base * 1.18;
+
+  let gekozen = goal==="snel" ? snel : goal==="max" ? max : slim;
+  let strategie = goal==="snel" ? "⚡ Snel verkopen" : goal==="max" ? "💰 Maximale opbrengst" : "⚖️ Slim verkopen";
+
+  let platform = "Marktplaats";
+  if(cat==="elektronica") platform = "Marktplaats / eBay";
+  if(cat==="babyspullen") platform = "Marktplaats / Facebook Marketplace";
+  if(cat==="meubels") platform = "Marktplaats / Facebook Marketplace";
+  if(cat==="auto") platform = "Marktplaats / AutoScout24";
+
+  result.innerHTML =
+`<span class="badge">Voorstel klaar</span>
+
+🏷️ PRODUCT
+Categorie: ${cat}
+Foto’s: ${files}
+Extra info: ${info || "Geen extra info ingevuld"}
+
+💰 PRIJSSTRATEGIE
+⚡ Snel verkopen: ${euro(snel)}
+⚖️ Slim verkopen: ${euro(slim)}
+💰 Maximale opbrengst: ${euro(max)}
+
+🎯 MIJN ADVIES
+Strategie: ${strategie}
+Adviesprijs: ${euro(gekozen)}
+Onderhandelruimte: ongeveer 10%
+
+📍 PLATFORMADVIES
+Aanbevolen: ${platform}
+
+✅ WAAROM DIT VOORSTEL?
+- Gebaseerd op categorie, opgegeven info en zichtbare foto’s
+- Geen harde garantieprijs
+- Jij controleert en beslist altijd zelf
+
+📝 ADVERTENTIEVOORSTEL
+
+Titel:
+${cat.charAt(0).toUpperCase()+cat.slice(1)} te koop - nette staat
+
+Beschrijving:
+Te koop aangeboden: ${cat}.
+${info ? "Extra info: " + info + "." : "Product is beoordeeld op basis van de foto’s."}
+
+Staat: gebruikt, zie foto’s.
+Prijsvoorstel: ${euro(gekozen)}.
+Bieden mag, maar graag realistisch.
+
+📌 CONTROLE
+✅ Prijs controleren
+✅ Foto’s controleren
+✅ Advertentie eventueel aanpassen
+✅ Pas plaatsen na jouw goedkeuring`;
+}
+</script>
+</body>
+</html>
