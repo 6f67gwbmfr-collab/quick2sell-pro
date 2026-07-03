@@ -1,3 +1,7 @@
+export const config = {
+  api: { bodyParser: { sizeLimit: "20mb" } }
+};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Alleen POST toegestaan" });
@@ -15,58 +19,54 @@ export default async function handler(req, res) {
     }
 
     const prompt = `
-Je bent Quick2Sell Lite, een AI-verkoopcoach voor Nederland en België.
+Je bent Quick2Sell Pro, een AI-verkoopcoach voor Nederland en België.
 
-Analyseer de foto's en extra info. Geef géén demo-prijzen.
-Gebruik alleen:
-- zichtbare informatie op de foto's;
-- extra info van de gebruiker;
-- algemene marktkennis.
-Live bronvergelijking is nog niet actief, dus zeg eerlijk dat dit een AI-schatting is.
+Analyseer de foto's echt. Herken product, merk, model, staat en maak een eerlijk verkoopvoorstel.
+Geef geen harde verkooptijd en geen gegarandeerde prijs.
+Zeg eerlijk dat live marktvergelijking nog niet actief is.
 
-Verkoopdoel gebruiker: ${goal}
-Extra info: ${info || "Geen extra info ingevuld."}
+Verkoopdoel: ${goal}
+Extra info gebruiker: ${info || "Geen extra info ingevuld."}
 
-Geef kort en duidelijk:
+Geef dit format:
 
 🏷 PRODUCT
-- Naam:
-- Merk:
-- Model/type:
-- Categorie:
-- Staat:
-- Zekerheid:
+Naam:
+Merk:
+Model/type:
+Categorie:
+Staat:
+Zekerheid:
 
 💰 PRIJSSTRATEGIE
-- ⚡ Snel verkopen:
-- ⚖ Slim verkopen:
-- 💰 Maximale opbrengst:
-- Uitleg:
+⚡ Snel verkopen:
+⚖ Slim verkopen:
+💰 Maximale opbrengst:
+Waarom:
 
 📍 PLATFORMADVIES
-- Beste platform:
-- Waarom:
+Beste platform:
+Waarom:
 
 📝 ADVERTENTIE
 Titel:
 Beschrijving:
 
-✅ WAAROM DIT VOORSTEL?
-- Reden 1:
-- Reden 2:
-- Reden 3:
+✅ CONTROLEPUNTEN
+- Wat moet gebruiker controleren?
+- Welke foto ontbreekt eventueel?
+- Waar moet gebruiker op letten?
 
 ⚠️ OPMERKING
-Dit is een AI-schatting, geen gegarandeerde verkoopprijs. Gebruiker beslist altijd zelf.
+Dit is een AI-schatting. Gebruiker beslist altijd zelf.
 `;
 
     const content = [{ type: "input_text", text: prompt }];
 
-    images.slice(0, 6).forEach((img) => {
+    images.slice(0, 6).forEach(img => {
       content.push({
         type: "input_image",
-        image_url: img,
-        detail: "auto"
+        image_url: img
       });
     });
 
@@ -91,9 +91,12 @@ Dit is een AI-schatting, geen gegarandeerde verkoopprijs. Gebruiker beslist alti
       });
     }
 
-    return res.status(200).json({
-      result: data.output_text || "Geen analyse ontvangen."
-    });
+    const text =
+      data.output_text ||
+      data.output?.map(o => o.content?.map(c => c.text).join("\n")).join("\n") ||
+      "Geen analyse ontvangen.";
+
+    return res.status(200).json({ result: text });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
